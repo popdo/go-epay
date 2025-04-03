@@ -91,6 +91,31 @@ func main() {
 		}
 	})
 
+	// 添加api订单查询示例
+	mux.HandleFunc("/query", func(writer http.ResponseWriter, request *http.Request) {
+		outTradeNo := request.URL.Query().Get("out_trade_no")
+		if outTradeNo == "" {
+			writer.WriteHeader(http.StatusBadRequest)
+			writer.Write([]byte("缺少订单号参数"))
+			return
+		}
+
+		result, err := client.QueryOrder("", outTradeNo)
+		if err != nil {
+			log.Println(err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		writer.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(writer).Encode(result)
+
+		// 如果订单支付成功，进行后续处理
+		if result.Code == 1 && result.Status == 1 {
+			log.Printf("订单 %s 支付成功", outTradeNo)
+			// 处理业务逻辑
+		}
+	})
 	mux.HandleFunc("/verify", func(writer http.ResponseWriter, request *http.Request) {
 		params := lo.Reduce(lo.Keys(request.URL.Query()), func(r map[string]string, t string, i int) map[string]string {
 			r[t] = request.URL.Query().Get(t)

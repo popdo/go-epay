@@ -10,6 +10,8 @@ type Service interface {
 	Purchase(args *PurchaseArgs) (string, map[string]string, error)
 	// 新增 API支付方法
 	ApiPurchase(args *ApiPurchaseArgs) (*ApiPurchaseRes, error)
+	// 查询单个订单
+	QueryOrder(tradeNo, outTradeNo string) (*ApiOrderQueryRes, error)
 	// Verify 验证回调参数是否符合签名
 	Verify(params map[string]string) (*VerifyRes, error)
 }

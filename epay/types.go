@@ -8,7 +8,7 @@ var (
 )
 
 type Config struct {
-	PartnerID string
+	PartnerID string // 商户ID
 	Key       string // MD5密钥或RSA私钥
 	PublicKey string // 平台公钥(用于验证签名)
 }
@@ -70,6 +70,38 @@ type ApiPurchaseRes struct {
 	QRCode string `json:"qrcode"`
 	// 小程序跳转URL (三选一)
 	URLScheme string `json:"urlscheme"`
+}
+
+// OrderQueryRes 查询订单响应
+type ApiOrderQueryRes struct {
+	// 返回状态码 1成功，其他失败
+	Code int `json:"code"`
+	// 返回信息
+	Message string `json:"msg"`
+	// 易支付订单号
+	TradeNo string `json:"trade_no"`
+	// 商户订单号
+	ServiceTradeNo string `json:"out_trade_no"`
+	// 第三方订单号
+	ApiTradeNo string `json:"api_trade_no"`
+	// 支付方式
+	Type string `json:"type"`
+	// 商户ID
+	// PID int `json:"pid"`
+	// 创建订单时间
+	AddTime string `json:"addtime"`
+	// 完成交易时间
+	EndTime string `json:"endtime"`
+	// 商品名称
+	Name string `json:"name"`
+	// 金额
+	Money string `json:"money"`
+	// 支付状态 1支付成功，0未支付
+	Status int `json:"status"`
+	// 业务扩展参数
+	Param string `json:"param"`
+	// 支付者账号
+	Buyer string `json:"buyer"`
 }
 
 // VerifyRes 验证结果
