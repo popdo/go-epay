@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Calcium-Ion/go-epay/epay"
+	"github.com/popdo/go-epay/epay"
 	"github.com/samber/lo"
 )
 

@@ -3,7 +3,7 @@
 ## 安装
 
 ```bash
-go get -u github.com/popdo/epay
+go get -u github.com/popdo/go-epay/epay
 ```
 
 ## 改进

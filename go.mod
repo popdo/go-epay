@@ -1,4 +1,4 @@
-module github.com/Calcium-Ion/go-epay
+module github.com/popdo/go-epay
 
 go 1.20
 
