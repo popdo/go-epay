@@ -23,14 +23,6 @@ const (
 	SignTypeRSA = "RSA2"
 )
 
-// DetectSignType 根据密钥长度判断签名类型
-func DetectSignType(key string) string {
-	if len(key) > 1000 {
-		return SignTypeRSA
-	}
-	return SignTypeMD5
-}
-
 // RSASign 使用RSA私钥进行SHA256WithRSA签名
 func RSASign(urlString string, privateKey string) (string, error) {
 	block, _ := pem.Decode([]byte(privateKey))
@@ -131,7 +123,7 @@ func GenerateParams(params map[string]string, key string) map[string]string {
 	keys, values := ParamsSort(filtered)
 	urlString := CreateUrlString(keys, values)
 
-	signType := DetectSignType(key)
+	signType := params["sign_type"]
 
 	if signType == SignTypeRSA {
 		// RSA签名

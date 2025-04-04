@@ -26,7 +26,7 @@ func main() {
 	notify, _ := url.Parse(baseUrl + "/verify")
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		url, params, err := client.Purchase(&epay.PurchaseArgs{
+		url, params, err := client.V1CreateOrder(&epay.CreateOrderArgs{
 			Type:           "wxpay",
 			ServiceTradeNo: "8412317576584121",
 			Name:           "test",
@@ -59,7 +59,7 @@ func main() {
 			clientIP = strings.Split(ip, ",")[0]
 		}
 
-		result, err := client.ApiPurchase(&epay.ApiPurchaseArgs{
+		result, err := client.V1ApiCreateOrder(&epay.ApiCreateOrderArgs{
 			Type:           "wxpay",
 			ServiceTradeNo: "API" + time.Now().Format("20060102150405"),
 			Name:           "API支付测试",
@@ -100,7 +100,7 @@ func main() {
 			return
 		}
 
-		result, err := client.QueryOrder("", outTradeNo)
+		result, err := client.V1QueryOrder("", outTradeNo)
 		if err != nil {
 			log.Println(err)
 			writer.WriteHeader(http.StatusInternalServerError)

@@ -2,6 +2,27 @@ package epay
 
 import "net/url"
 
+const StatusTradeSuccess = "TRADE_SUCCESS"
+
+// 支付接口类型（预留外部使用）
+const (
+	MethodWeb    = "web"    // 通用网页支付
+	MethodWap    = "wap"    // H5支付
+	MethodQrcode = "qrcode" // 扫码支付
+	MethodJsapi  = "jsapi"  // JSAPI支付
+	MethodMinipg = "minipg" // 小程序支付
+)
+
+// 支付发起类型（预留外部使用）
+const (
+	PayTypeJump     = "jump"     // 跳转支付
+	PayTypeQrcode   = "qrcode"   // 二维码支付
+	PayTypeJsapi    = "jsapi"    // JSAPI支付
+	PayTypeScan     = "scan"     // 扫码支付结果
+	PayTypeWxplugin = "wxplugin" // 微信收银台支付
+	PayTypeWxapp    = "wxapp"    // 微信小程序跳转支付
+)
+
 var (
 	PC     DeviceType = "pc"     // PC PC端
 	MOBILE DeviceType = "mobile" // MOBILE 移动端
@@ -19,7 +40,7 @@ type Client struct {
 
 type DeviceType string
 
-type PurchaseArgs struct {
+type CreateOrderArgs struct {
 	// 支付类型
 	Type string
 	// 商家订单号
@@ -32,10 +53,12 @@ type PurchaseArgs struct {
 	Device    DeviceType
 	NotifyUrl *url.URL
 	ReturnUrl *url.URL
+	// 业务扩展参数
+	Param string
 }
 
 // API支付请求参数
-type ApiPurchaseArgs struct {
+type ApiCreateOrderArgs struct {
 	// 支付类型
 	Type string
 	// 商家订单号
@@ -54,22 +77,34 @@ type ApiPurchaseArgs struct {
 	NotifyUrl *url.URL
 	// 跳转地址 (可选)
 	ReturnUrl *url.URL
+
+	// 新增V2特有字段
+	Method    string //  (V2必填)
+	AuthCode  string // 扫码支付授权码
+	SubOpenID string // 用户OpenID
+	SubAppID  string // 公众号AppID
 }
 
 // API支付响应
-type ApiPurchaseRes struct {
-	// 返回状态码 1成功，其他失败
+type ApiCreateOrderRes struct {
+	// 返回状态码 v1是1成功，其他失败
+	// 返回状态码 v2是0成功，其他失败
 	Code int `json:"code"`
 	// 返回信息
 	Message string `json:"msg"`
 	// 订单号
 	TradeNo string `json:"trade_no"`
-	// 支付跳转URL (三选一)
-	PayURL string `json:"payurl"`
-	// 二维码链接 (三选一)
-	QRCode string `json:"qrcode"`
-	// 小程序跳转URL (三选一)
-	URLScheme string `json:"urlscheme"`
+	// V1特有字段
+	PayURL    string `json:"payurl,omitempty"`    // 支付跳转URL (三选一)
+	QRCode    string `json:"qrcode,omitempty"`    // 二维码链接 (三选一)
+	URLScheme string `json:"urlscheme,omitempty"` // 小程序跳转URL (三选一)
+
+	// V2特有字段
+	PayType   string `json:"pay_type,omitempty"`  // 发起支付类型
+	PayInfo   string `json:"pay_info,omitempty"`  // 发起支付参数
+	Timestamp string `json:"timestamp,omitempty"` // 时间戳
+	Sign      string `json:"sign,omitempty"`      // 签名
+	SignType  string `json:"sign_type,omitempty"` // 签名类型
 }
 
 // OrderQueryRes 查询订单响应
@@ -102,6 +137,13 @@ type ApiOrderQueryRes struct {
 	Param string `json:"param"`
 	// 支付者账号
 	Buyer string `json:"buyer"`
+
+	// V2特有字段
+	RefundMoney string `json:"refundmoney,omitempty"` // 已退款金额
+	ClientIP    string `json:"clientip,omitempty"`    // 用户IP
+	Timestamp   string `json:"timestamp,omitempty"`   // 时间戳
+	Sign        string `json:"sign,omitempty"`        // 签名
+	SignType    string `json:"sign_type,omitempty"`   // 签名类型
 }
 
 // VerifyRes 验证结果
