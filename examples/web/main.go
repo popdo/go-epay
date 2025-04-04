@@ -17,7 +17,7 @@ func main() {
 	client, err := epay.NewClient(&epay.Config{
 		PartnerID: "1000",
 		Key:       "KEY",
-		PublicKey: "PLATFORM_PUBLIC_KEY", // 平台公钥（用于验签）
+		PublicKey: "PLATFORM_PUBLIC_KEY", // 平台公钥（用于V2接口验签）
 	}, baseUrl)
 
 	if err != nil {
@@ -26,7 +26,7 @@ func main() {
 	notify, _ := url.Parse(baseUrl + "/verify")
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		url, params, err := client.V1CreateOrder(&epay.CreateOrderArgs{
+		url, params, err := client.CreateOrder(&epay.CreateOrderArgs{
 			Type:       "wxpay",
 			OutTradeNo: "8412317576584121",
 			Name:       "test",
@@ -59,7 +59,7 @@ func main() {
 			clientIP = strings.Split(ip, ",")[0]
 		}
 
-		result, err := client.V1ApiCreateOrder(&epay.ApiCreateOrderArgs{
+		result, err := client.ApiCreateOrder(&epay.ApiCreateOrderArgs{
 			Type:       "wxpay",
 			OutTradeNo: "API" + time.Now().Format("20060102150405"),
 			Name:       "API支付测试",
@@ -100,7 +100,7 @@ func main() {
 			return
 		}
 
-		result, err := client.V1QueryOrder("", outTradeNo)
+		result, err := client.QueryOrder("", outTradeNo)
 		if err != nil {
 			log.Println(err)
 			writer.WriteHeader(http.StatusInternalServerError)
