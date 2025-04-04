@@ -9,4 +9,5 @@ go get -u github.com/popdo/go-epay/epay
 ## 改进
 
 - 支持RSA私钥签名
+- 支持彩虹易支付V2版本
 - 在原有跳转支付上新增了API支付

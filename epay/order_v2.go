@@ -31,8 +31,8 @@ func (c *Client) V2CreateOrder(args *CreateOrderArgs) (string, map[string]string
 		"name":         args.Name,
 		"money":        args.Money,
 		"timestamp":    strconv.FormatInt(time.Now().Unix(), 10),
-		"sign_type":    SignTypeRSA,
 		"sign":         "",
+		"sign_type":    SignTypeRSA,
 	}
 
 	// 可选参数
@@ -58,10 +58,12 @@ func (c *Client) V2ApiCreateOrder(args *ApiCreateOrderArgs) (*ApiCreateOrderRes,
 		"type":         args.Type,
 		"out_trade_no": args.ServiceTradeNo,
 		"notify_url":   args.NotifyUrl.String(),
+		"return_url":   args.ReturnUrl.String(),
 		"name":         args.Name,
 		"money":        args.Money,
 		"clientip":     args.ClientIP,
 		"timestamp":    strconv.FormatInt(time.Now().Unix(), 10),
+		"sign":         "",
 		"sign_type":    SignTypeRSA,
 	}
 
@@ -71,9 +73,6 @@ func (c *Client) V2ApiCreateOrder(args *ApiCreateOrderArgs) (*ApiCreateOrderRes,
 	}
 	if args.Param != "" {
 		requestParams["param"] = args.Param
-	}
-	if args.ReturnUrl != nil {
-		requestParams["return_url"] = args.ReturnUrl.String()
 	}
 	if args.AuthCode != "" {
 		requestParams["auth_code"] = args.AuthCode

@@ -29,9 +29,11 @@ func (c *Client) V1CreateOrder(args *CreateOrderArgs) (string, map[string]string
 		"return_url":   args.ReturnUrl.String(),
 		"name":         args.Name,
 		"money":        args.Money,
-		"device":       string(args.Device),
-		"sign_type":    SignTypeMD5,
 		"sign":         "",
+		"sign_type":    SignTypeMD5,
+	}
+	if args.Param != "" {
+		requestParams["param"] = args.Param
 	}
 
 	u, err := url.Parse(c.BaseUrl.String())
@@ -54,6 +56,8 @@ func (c *Client) V1ApiCreateOrder(args *ApiCreateOrderArgs) (*ApiCreateOrderRes,
 		"name":         args.Name,
 		"money":        args.Money,
 		"clientip":     args.ClientIP,
+		"sign":         "",
+		"sign_type":    SignTypeMD5,
 	}
 
 	// 添加可选参数

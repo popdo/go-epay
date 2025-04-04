@@ -23,9 +23,14 @@ const (
 	PayTypeWxapp    = "wxapp"    // 微信小程序跳转支付
 )
 
+type DeviceType string
+
 var (
 	PC     DeviceType = "pc"     // PC PC端
 	MOBILE DeviceType = "mobile" // MOBILE 移动端
+	QQ     DeviceType = "qq"     // QQ QQ内置浏览器
+	WECHAT DeviceType = "wechat" // WECHAT 微信内置浏览器
+	ALIPAY DeviceType = "alipay" // ALIPAY 支付宝
 )
 
 type Config struct {
@@ -37,8 +42,6 @@ type Client struct {
 	Config  *Config
 	BaseUrl *url.URL
 }
-
-type DeviceType string
 
 type CreateOrderArgs struct {
 	// 支付类型
@@ -80,9 +83,9 @@ type ApiCreateOrderArgs struct {
 
 	// 新增V2特有字段
 	Method    string //  (V2必填)
-	AuthCode  string // 扫码支付授权码
-	SubOpenID string // 用户OpenID
-	SubAppID  string // 公众号AppID
+	AuthCode  string // 扫码支付授权码 仅被扫支付需要传
+	SubOpenID string // 用户OpenID 仅JSAPI支付需要传
+	SubAppID  string // 公众号AppID 仅JSAPI支付需要传
 }
 
 // API支付响应
