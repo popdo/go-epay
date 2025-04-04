@@ -41,28 +41,36 @@ func RSASign(data string, privateKeyContent string) (string, error) {
 		return "", errors.New("private key error")
 	}
 
-	// 使用PKCS#8格式解析
-	privateKeyInterface, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	var privateKeyInterface interface{}
+	// 先尝试PKCS#1格式解析（与头部标识匹配）
+	privateKeyInterface, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {
-		// 尝试PKCS#1格式解析
-		rsaPrivateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+		// 尝试PKCS#8格式解析
+		privateKeyInterface, err = x509.ParsePKCS8PrivateKey(block.Bytes)
 		if err != nil {
 			return "", err
 		}
-		privateKeyInterface = rsaPrivateKey
 	}
 
-	rsaPrivateKey, ok := privateKeyInterface.(*rsa.PrivateKey)
-	if !ok {
-		return "", errors.New("private key type error")
+	// 获取私钥实例
+	var rsaPrivateKey *rsa.PrivateKey
+	switch privateKey := privateKeyInterface.(type) {
+	case *rsa.PrivateKey:
+		rsaPrivateKey = privateKey
+	default:
+		return "", errors.New("私钥类型错误")
 	}
+	// rsaPrivateKey, ok := privateKeyInterface.(*rsa.PrivateKey)
+	// if !ok {
+	// 	return "", errors.New("private key type error")
+	// }
 
 	// 使用SHA256WithRSA算法
-	h := sha256.New()
-	h.Write([]byte(data))
-	hashed := h.Sum(nil)
+	hash := sha256.New()
+	hash.Write([]byte(data))
+	digest := hash.Sum(nil)
 
-	signature, err := rsa.SignPKCS1v15(rand.Reader, rsaPrivateKey, crypto.SHA256, hashed)
+	signature, err := rsa.SignPKCS1v15(rand.Reader, rsaPrivateKey, crypto.SHA256, digest)
 	if err != nil {
 		return "", err
 	}
@@ -104,8 +112,12 @@ func RSAVerify(urlString, sign, publicKeyContent string) (bool, error) {
 		return false, err
 	}
 
-	hash := sha256.Sum256([]byte(urlString))
-	err = rsa.VerifyPKCS1v15(pubKey, crypto.SHA256, hash[:], signBytes)
+	// 使用与签名相同的哈希计算方式
+	hash := sha256.New()
+	hash.Write([]byte(urlString))
+	digest := hash.Sum(nil)
+
+	err = rsa.VerifyPKCS1v15(pubKey, crypto.SHA256, digest, signBytes)
 	return err == nil, nil
 }
 

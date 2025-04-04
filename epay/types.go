@@ -15,12 +15,15 @@ const (
 
 // 支付发起类型（预留外部使用）
 const (
-	PayTypeJump     = "jump"     // 跳转支付
-	PayTypeQrcode   = "qrcode"   // 二维码支付
-	PayTypeJsapi    = "jsapi"    // JSAPI支付
-	PayTypeScan     = "scan"     // 扫码支付结果
-	PayTypeWxplugin = "wxplugin" // 微信收银台支付
-	PayTypeWxapp    = "wxapp"    // 微信小程序跳转支付
+	PayTypeJump      = "jump"      // 跳转支付
+	PayTypeQrcode    = "qrcode"    // 二维码支付
+	PayTypeJsapi     = "jsapi"     // JSAPI支付
+	PayTypeScan      = "scan"      // 扫码支付结果
+	PayTypeWxplugin  = "wxplugin"  // 微信收银台支付
+	PayTypeWxapp     = "wxapp"     // 微信小程序跳转支付
+	PayTypeUrlScheme = "urlscheme" // 微信/支付宝小程序跳转url scheme
+	PayTypeApp       = "app"       // APP支付
+	PayTypeHtml      = "html"      // HTML支付
 )
 
 type DeviceType string
