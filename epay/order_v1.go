@@ -12,25 +12,21 @@ import (
 )
 
 const (
-	// v1
 	V1CreateUrl    = "/submit.php" // v1 跳转支付
 	V1ApiCreateUrl = "/mapi.php"   // v1 API支付
 	V1QueryUrl     = "/api.php"    // v1 查询订单
 )
 
-// v1 创建订单
+// 创建订单
 func (c *Client) V1CreateOrder(args *CreateOrderArgs) (string, map[string]string, error) {
-	// see https://payment.moe/doc.html
 	requestParams := map[string]string{
 		"pid":          c.Config.PartnerID,
 		"type":         args.Type,
-		"out_trade_no": args.ServiceTradeNo,
+		"out_trade_no": args.OutTradeNo,
 		"notify_url":   args.NotifyUrl.String(),
 		"return_url":   args.ReturnUrl.String(),
 		"name":         args.Name,
 		"money":        args.Money,
-		"sign":         "",
-		"sign_type":    SignTypeMD5,
 	}
 	if args.Param != "" {
 		requestParams["param"] = args.Param
@@ -42,22 +38,20 @@ func (c *Client) V1CreateOrder(args *CreateOrderArgs) (string, map[string]string
 	}
 	u.Path = path.Join(u.Path, V1CreateUrl)
 
-	return u.String(), GenerateParams(requestParams, c.Config.Key), nil
+	return u.String(), GenerateParams(requestParams, c.Config.Key, SignTypeMD5), nil
 }
 
-// ApiPurchase API接口创建订单
+// API接口创建订单
 func (c *Client) V1ApiCreateOrder(args *ApiCreateOrderArgs) (*ApiCreateOrderRes, error) {
 	// 构建请求参数
 	requestParams := map[string]string{
 		"pid":          c.Config.PartnerID,
 		"type":         args.Type,
-		"out_trade_no": args.ServiceTradeNo,
-		"notify_url":   args.NotifyUrl.String(),
+		"out_trade_no": args.OutTradeNo,
+		"notify_url":   args.NotifyURL.String(),
 		"name":         args.Name,
 		"money":        args.Money,
 		"clientip":     args.ClientIP,
-		"sign":         "",
-		"sign_type":    SignTypeMD5,
 	}
 
 	// 添加可选参数
@@ -67,12 +61,12 @@ func (c *Client) V1ApiCreateOrder(args *ApiCreateOrderArgs) (*ApiCreateOrderRes,
 	if args.Param != "" {
 		requestParams["param"] = args.Param
 	}
-	if args.ReturnUrl != nil {
-		requestParams["return_url"] = args.ReturnUrl.String()
+	if args.ReturnURL != nil {
+		requestParams["return_url"] = args.ReturnURL.String()
 	}
 
 	// 生成签名
-	signParams := GenerateParams(requestParams, c.Config.Key)
+	signParams := GenerateParams(requestParams, c.Config.Key, SignTypeMD5)
 
 	// 构建API接口URL
 	apiUrl, err := url.Parse(c.BaseUrl.String())
@@ -104,7 +98,7 @@ func (c *Client) V1ApiCreateOrder(args *ApiCreateOrderArgs) (*ApiCreateOrderRes,
 	return &result, nil
 }
 
-// QueryOrder 查询单个订单
+// 查询单个订单
 func (c *Client) V1QueryOrder(tradeNo, outTradeNo string) (*ApiOrderQueryRes, error) {
 	// 构建请求参数
 	queryUrl, err := url.Parse(c.BaseUrl.String())

@@ -14,8 +14,9 @@ import "github.com/mitchellh/mapstructure"
 // - 平台公钥(PublicKey)用于验证平台返回数据的签名
 func (c *Client) Verify(params map[string]string) (*VerifyRes, error) {
 	sign := params["sign"]
-
+	signType := params["sign_type"]
 	var verifyRes VerifyRes
+
 	// 从 map 映射到 struct 上
 	err := mapstructure.Decode(params, &verifyRes)
 	if err != nil {
@@ -23,12 +24,10 @@ func (c *Client) Verify(params map[string]string) (*VerifyRes, error) {
 	}
 
 	// 准备验证签名
-	filtered := ParamsFilter(params)
-	keys, values := ParamsSort(filtered)
-	urlString := CreateUrlString(keys, values)
+	urlString := GetSignContent(params)
 
-	// 根据是否提供PublicKey来决定验证方式
-	if c.Config.PublicKey != "" {
+	// 根据签名类型和是否提供PublicKey来决定验证方式
+	if signType == SignTypeRSA && c.Config.PublicKey != "" {
 		verified, err := RSAVerify(urlString, sign, c.Config.PublicKey)
 		if err != nil {
 			return nil, err
@@ -39,12 +38,4 @@ func (c *Client) Verify(params map[string]string) (*VerifyRes, error) {
 		verifyRes.VerifyStatus = sign == MD5String(urlString, c.Config.Key)
 	}
 	return &verifyRes, nil
-
-	// 验证签名
-	// verifyRes.VerifyStatus = sign == GenerateParams(params, c.Config.Key)["sign"]
-	// if err != nil {
-	// 	return nil, err
-	// } else {
-	// 	return &verifyRes, nil
-	// }
 }

@@ -13,30 +13,56 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-
-	"github.com/samber/lo"
 )
 
 // 确定签名类型
 const (
 	SignTypeMD5 = "MD5"
-	SignTypeRSA = "RSA2"
+	SignTypeRSA = "RSA"
 )
 
-// RSASign 使用RSA私钥进行SHA256WithRSA签名
-func RSASign(urlString string, privateKey string) (string, error) {
+// RSASign 使用SHA256WithRSA算法生成签名
+func RSASign(data string, privateKeyContent string) (string, error) {
+	// 添加PKCS#8格式头尾并格式化
+	privateKey := "-----BEGIN RSA PRIVATE KEY-----\n"
+	keyLen := len(privateKeyContent)
+	for i := 0; i < keyLen; i += 64 {
+		end := i + 64
+		if end > keyLen {
+			end = keyLen
+		}
+		privateKey += privateKeyContent[i:end] + "\n"
+	}
+	privateKey += "-----END RSA PRIVATE KEY-----"
+
+	// 解析私钥
 	block, _ := pem.Decode([]byte(privateKey))
 	if block == nil {
 		return "", errors.New("private key error")
 	}
 
-	priKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	// 使用PKCS#8格式解析
+	privateKeyInterface, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 	if err != nil {
-		return "", err
+		// 尝试PKCS#1格式解析
+		rsaPrivateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+		if err != nil {
+			return "", err
+		}
+		privateKeyInterface = rsaPrivateKey
 	}
 
-	hash := sha256.Sum256([]byte(urlString))
-	signature, err := rsa.SignPKCS1v15(rand.Reader, priKey, crypto.SHA256, hash[:])
+	rsaPrivateKey, ok := privateKeyInterface.(*rsa.PrivateKey)
+	if !ok {
+		return "", errors.New("private key type error")
+	}
+
+	// 使用SHA256WithRSA算法
+	h := sha256.New()
+	h.Write([]byte(data))
+	hashed := h.Sum(nil)
+
+	signature, err := rsa.SignPKCS1v15(rand.Reader, rsaPrivateKey, crypto.SHA256, hashed)
 	if err != nil {
 		return "", err
 	}
@@ -45,7 +71,19 @@ func RSASign(urlString string, privateKey string) (string, error) {
 }
 
 // RSAVerify 使用RSA公钥验证签名
-func RSAVerify(urlString, sign, publicKey string) (bool, error) {
+func RSAVerify(urlString, sign, publicKeyContent string) (bool, error) {
+	// 添加公钥头尾并格式化
+	publicKey := "-----BEGIN PUBLIC KEY-----\n"
+	keyLen := len(publicKeyContent)
+	for i := 0; i < keyLen; i += 64 {
+		end := i + 64
+		if end > keyLen {
+			end = keyLen
+		}
+		publicKey += publicKeyContent[i:end] + "\n"
+	}
+	publicKey += "-----END PUBLIC KEY-----"
+
 	block, _ := pem.Decode([]byte(publicKey))
 	if block == nil {
 		return false, errors.New("public key error")
@@ -71,35 +109,6 @@ func RSAVerify(urlString, sign, publicKey string) (bool, error) {
 	return err == nil, nil
 }
 
-// ParamsFilter 过滤参数，生成签名时需删除 “sign” 和 “sign_type” 参数
-func ParamsFilter(params map[string]string) map[string]string {
-	return lo.PickBy[string, string](params, func(key string, value string) bool {
-		return !(key == "sign" || key == "sign_type" || value == "")
-	})
-}
-
-// ParamsSort 对参数进行排序，返回排序后的 keys 和 values （go 中 map 为乱序）
-func ParamsSort(params map[string]string) ([]string, []string) {
-	keys := lo.Keys(params)
-	sort.Strings(keys)
-
-	values := lo.Map(keys, func(key string, i int) string {
-		return params[key]
-	})
-
-	return keys, values
-}
-
-// CreateUrlString 生成待签名字符串, ["a", "b", "c"], ["d", "e", "f"] => "a=d&b=e&c=f"
-func CreateUrlString(keys []string, values []string) string {
-	urlString := ""
-	for i, key := range keys {
-		urlString += key + "=" + values[i] + "&"
-	}
-	// trim 掉最后的 &
-	return strings.TrimSuffix(urlString, "&")
-}
-
 // MD5String 生成 加盐(商户 key) MD5 字符串
 func MD5String(urlString string, key string) string {
 	digest := md5.Sum([]byte(urlString + key))
@@ -107,37 +116,51 @@ func MD5String(urlString string, key string) string {
 }
 
 // GenerateParams 生成加签参数
-//
-//	func GenerateParams(params map[string]string, key string) map[string]string {
-//		filtered := ParamsFilter(params)
-//		keys, values := ParamsSort(filtered)
-//		sign := MD5String(CreateUrlString(keys, values), key)
-//		params["sign"] = sign
-//		params["sign_type"] = "MD5"
-//		return params
-//	}
-//
-// GenerateParams 生成加签参数
-func GenerateParams(params map[string]string, key string) map[string]string {
-	filtered := ParamsFilter(params)
-	keys, values := ParamsSort(filtered)
-	urlString := CreateUrlString(keys, values)
-
-	signType := params["sign_type"]
-
-	if signType == SignTypeRSA {
-		// RSA签名
-		sign, err := RSASign(urlString, key)
-		if err != nil {
-			// 如果RSA签名失败，回退到MD5
-			sign = MD5String(urlString, key)
-			signType = SignTypeMD5
-		}
-		params["sign"] = sign
-	} else {
-		// MD5签名
-		sign := MD5String(urlString, key)
-		params["sign"] = sign
+func GenerateParams(params map[string]string, key string, signType string) map[string]string {
+	// 复制一份参数，避免修改原始数据
+	newParams := make(map[string]string)
+	for k, v := range params {
+		newParams[k] = v
 	}
-	return params
+	// 生成待签名字符串
+	signContent := GetSignContent(newParams)
+	// 根据签名类型生成签名
+	var sign string
+	var err error
+	if signType == SignTypeRSA {
+		sign, err = RSASign(signContent, key)
+		if err != nil {
+			return newParams
+		}
+	} else if signType == SignTypeMD5 {
+		sign = MD5String(signContent, key)
+	}
+
+	newParams["sign"] = sign
+	newParams["sign_type"] = signType
+
+	return newParams
+
+}
+
+// GetSignContent 获取待签名字符串，与PHP端逻辑保持一致
+func GetSignContent(params map[string]string) string {
+	var keys []string
+	for k, v := range params {
+		// 跳过空值、sign和sign_type
+		if v == "" || k == "sign" || k == "sign_type" {
+			continue
+		}
+		keys = append(keys, k)
+	}
+
+	// 按键名字典序排序
+	sort.Strings(keys)
+
+	var signParts []string
+	for _, k := range keys {
+		signParts = append(signParts, k+"="+params[k])
+	}
+
+	return strings.Join(signParts, "&")
 }

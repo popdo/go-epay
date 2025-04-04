@@ -47,7 +47,7 @@ type CreateOrderArgs struct {
 	// 支付类型
 	Type string
 	// 商家订单号
-	ServiceTradeNo string
+	OutTradeNo string
 	// 商品名称
 	Name string
 	// 金额
@@ -60,32 +60,27 @@ type CreateOrderArgs struct {
 	Param string
 }
 
-// API支付请求参数
 type ApiCreateOrderArgs struct {
-	// 支付类型
-	Type string
-	// 商家订单号
-	ServiceTradeNo string
-	// 商品名称
-	Name string
-	// 金额
-	Money string
-	// 客户端IP
-	ClientIP string
-	// 设备类型 (可选)
-	Device DeviceType
-	// 业务扩展参数 (可选)
-	Param string
-	// 异步通知地址
-	NotifyUrl *url.URL
-	// 跳转地址 (可选)
-	ReturnUrl *url.URL
+	// 必填参数
+	PID        string   `json:"pid"`          // 商户ID
+	Method     string   `json:"method"`       // 接口类型
+	Type       string   `json:"type"`         // 支付方式
+	OutTradeNo string   `json:"out_trade_no"` // 商户订单号
+	NotifyURL  *url.URL `json:"notify_url"`   // 异步通知地址
+	ReturnURL  *url.URL `json:"return_url"`   // 跳转通知地址
+	Name       string   `json:"name"`         // 商品名称
+	Money      string   `json:"money"`        // 商品金额
+	ClientIP   string   `json:"clientip"`     // 用户IP地址
+	Timestamp  string   `json:"timestamp"`    // 当前时间戳
+	Sign       string   `json:"sign"`         // 签名字符串
+	SignType   string   `json:"sign_type"`    // 签名类型
 
-	// 新增V2特有字段
-	Method    string //  (V2必填)
-	AuthCode  string // 扫码支付授权码 仅被扫支付需要传
-	SubOpenID string // 用户OpenID 仅JSAPI支付需要传
-	SubAppID  string // 公众号AppID 仅JSAPI支付需要传
+	// 可选参数
+	Device    DeviceType `json:"device,omitempty"`     // 设备类型
+	Param     string     `json:"param,omitempty"`      // 业务扩展参数
+	AuthCode  string     `json:"auth_code,omitempty"`  // 被扫支付授权码
+	SubOpenID string     `json:"sub_openid,omitempty"` // 用户Openid
+	SubAppID  string     `json:"sub_appid,omitempty"`  // 公众号AppId
 }
 
 // API支付响应
@@ -119,7 +114,7 @@ type ApiOrderQueryRes struct {
 	// 易支付订单号
 	TradeNo string `json:"trade_no"`
 	// 商户订单号
-	ServiceTradeNo string `json:"out_trade_no"`
+	OutTradeNo string `json:"out_trade_no"`
 	// 第三方订单号
 	ApiTradeNo string `json:"api_trade_no"`
 	// 支付方式
@@ -156,7 +151,7 @@ type VerifyRes struct {
 	// 易支付订单号
 	TradeNo string `mapstructure:"trade_no"`
 	// 商家订单号
-	ServiceTradeNo string `mapstructure:"out_trade_no"`
+	OutTradeNo string `mapstructure:"out_trade_no"`
 	// 商品名称
 	Name string
 	// 金额

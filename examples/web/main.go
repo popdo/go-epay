@@ -27,13 +27,13 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		url, params, err := client.V1CreateOrder(&epay.CreateOrderArgs{
-			Type:           "wxpay",
-			ServiceTradeNo: "8412317576584121",
-			Name:           "test",
-			Money:          "0.01",
-			Device:         epay.PC,
-			NotifyUrl:      notify,
-			ReturnUrl:      notify,
+			Type:       "wxpay",
+			OutTradeNo: "8412317576584121",
+			Name:       "test",
+			Money:      "0.01",
+			Device:     epay.PC,
+			NotifyUrl:  notify,
+			ReturnUrl:  notify,
 		})
 		if err != nil {
 			log.Println(err)
@@ -60,14 +60,14 @@ func main() {
 		}
 
 		result, err := client.V1ApiCreateOrder(&epay.ApiCreateOrderArgs{
-			Type:           "wxpay",
-			ServiceTradeNo: "API" + time.Now().Format("20060102150405"),
-			Name:           "API支付测试",
-			Money:          "0.01",
-			ClientIP:       clientIP,
-			Device:         epay.PC,
-			NotifyUrl:      notify,
-			ReturnUrl:      notify,
+			Type:       "wxpay",
+			OutTradeNo: "API" + time.Now().Format("20060102150405"),
+			Name:       "API支付测试",
+			Money:      "0.01",
+			ClientIP:   clientIP,
+			Device:     epay.PC,
+			NotifyURL:  notify,
+			ReturnURL:  notify,
 		})
 
 		if err != nil {

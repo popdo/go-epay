@@ -3,6 +3,7 @@ package epay
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -14,25 +15,22 @@ import (
 )
 
 const (
-	// v2
 	V2CreateUrl    = "/api/pay/submit" // v2 跳转支付
 	V2ApiCreateUrl = "/api/pay/create" // v2 API支付
 	V2QueryUrl     = "/api/pay/query"  // v2 查询订单
 )
 
-// V2 创建订单
+// 创建订单
 func (c *Client) V2CreateOrder(args *CreateOrderArgs) (string, map[string]string, error) {
 	requestParams := map[string]string{
 		"pid":          c.Config.PartnerID,
 		"type":         args.Type,
-		"out_trade_no": args.ServiceTradeNo,
+		"out_trade_no": args.OutTradeNo,
 		"notify_url":   args.NotifyUrl.String(),
 		"return_url":   args.ReturnUrl.String(),
 		"name":         args.Name,
 		"money":        args.Money,
 		"timestamp":    strconv.FormatInt(time.Now().Unix(), 10),
-		"sign":         "",
-		"sign_type":    SignTypeRSA,
 	}
 
 	// 可选参数
@@ -46,25 +44,23 @@ func (c *Client) V2CreateOrder(args *CreateOrderArgs) (string, map[string]string
 	}
 	u.Path = path.Join(u.Path, V2CreateUrl)
 
-	return u.String(), GenerateParams(requestParams, c.Config.Key), nil
+	return u.String(), GenerateParams(requestParams, c.Config.Key, SignTypeRSA), nil
 }
 
-// v2 API创建订单
+// API创建订单
 func (c *Client) V2ApiCreateOrder(args *ApiCreateOrderArgs) (*ApiCreateOrderRes, error) {
 	// 构建请求参数
 	requestParams := map[string]string{
 		"pid":          c.Config.PartnerID,
 		"method":       args.Method, // 接口类型：web/wap/qrcode/jsapi/minipg
 		"type":         args.Type,
-		"out_trade_no": args.ServiceTradeNo,
-		"notify_url":   args.NotifyUrl.String(),
-		"return_url":   args.ReturnUrl.String(),
+		"out_trade_no": args.OutTradeNo,
+		"notify_url":   args.NotifyURL.String(),
+		"return_url":   args.ReturnURL.String(),
 		"name":         args.Name,
 		"money":        args.Money,
 		"clientip":     args.ClientIP,
-		"timestamp":    strconv.FormatInt(time.Now().Unix(), 10),
-		"sign":         "",
-		"sign_type":    SignTypeRSA,
+		"timestamp":    fmt.Sprintf("%d", time.Now().Unix()),
 	}
 
 	// 添加可选参数
@@ -85,7 +81,7 @@ func (c *Client) V2ApiCreateOrder(args *ApiCreateOrderArgs) (*ApiCreateOrderRes,
 	}
 
 	// 生成签名
-	signParams := GenerateParams(requestParams, c.Config.Key)
+	signParams := GenerateParams(requestParams, c.Config.Key, SignTypeRSA)
 
 	// 构建API接口URL
 	apiUrl, err := url.Parse(c.BaseUrl.String())
@@ -114,22 +110,92 @@ func (c *Client) V2ApiCreateOrder(args *ApiCreateOrderArgs) (*ApiCreateOrderRes,
 		return nil, err
 	}
 
-	// 验证返回的签名
-	if result.Sign != "" && c.Config.PublicKey != "" {
-		// 验证签名逻辑...
-		// 这里可以添加对返回结果的签名验证
+	// if result.Code != 0 {
+	// 	// 记录响应的完整内容用于调试
+	// 	responseBody := string(body)
+	// 	log.Printf("创建订单失败，服务器响应: %s", responseBody)
+	// }
+
+	return &result, nil
+}
+func (c *Client) V2ApiCreateOrder111(args *ApiCreateOrderArgs) (*ApiCreateOrderRes, error) {
+	// 构建请求参数
+	requestParams := map[string]string{
+		"pid":          c.Config.PartnerID,
+		"method":       args.Method, // 接口类型：web/wap/qrcode/jsapi/minipg
+		"type":         args.Type,
+		"out_trade_no": args.OutTradeNo,
+		"notify_url":   args.NotifyURL.String(),
+		"return_url":   args.ReturnURL.String(),
+		"name":         args.Name,
+		"money":        args.Money,
+		"clientip":     args.ClientIP,
+		"timestamp":    fmt.Sprintf("%d", time.Now().Unix()),
+		// "timestamp":    strconv.FormatInt(time.Now().Unix(), 10),
 	}
+
+	// 添加可选参数
+	if args.Device != "" {
+		requestParams["device"] = string(args.Device)
+	}
+	if args.Param != "" {
+		requestParams["param"] = args.Param
+	}
+	if args.AuthCode != "" {
+		requestParams["auth_code"] = args.AuthCode
+	}
+	if args.SubOpenID != "" {
+		requestParams["sub_openid"] = args.SubOpenID
+	}
+	if args.SubAppID != "" {
+		requestParams["sub_appid"] = args.SubAppID
+	}
+
+	// 生成签名
+	signParams := GenerateParams(requestParams, c.Config.Key, SignTypeRSA)
+
+	// 构建API接口URL
+	apiUrl, err := url.Parse(c.BaseUrl.String())
+	if err != nil {
+		return nil, err
+	}
+	apiUrl.Path = path.Join(apiUrl.Path, V2ApiCreateUrl)
+
+	// 发送POST请求
+	resp, err := http.PostForm(apiUrl.String(), url.Values(lo.MapValues(signParams, func(v string, _ string) []string {
+		return []string{v}
+	})))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// 解析JSON响应
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var result ApiCreateOrderRes
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, err
+	}
+
+	// if result.Code != 0 {
+	// 	// 记录响应的完整内容用于调试
+	// 	responseBody := string(body)
+	// 	log.Printf("创建订单失败，服务器响应: %s", responseBody)
+	// }
 
 	return &result, nil
 }
 
-// V2 查询单个订单
+// 查询单个订单
 func (c *Client) V2QueryOrder(tradeNo, outTradeNo string) (*ApiOrderQueryRes, error) {
 	// 构建请求参数
 	requestParams := map[string]string{
 		"pid":       c.Config.PartnerID,
 		"timestamp": strconv.FormatInt(time.Now().Unix(), 10),
-		"sign_type": SignTypeRSA,
 	}
 
 	// 至少需要传入一个订单号
@@ -142,7 +208,7 @@ func (c *Client) V2QueryOrder(tradeNo, outTradeNo string) (*ApiOrderQueryRes, er
 	}
 
 	// 生成签名
-	signParams := GenerateParams(requestParams, c.Config.Key)
+	signParams := GenerateParams(requestParams, c.Config.Key, SignTypeRSA)
 
 	// 构建API接口URL
 	apiUrl, err := url.Parse(c.BaseUrl.String())
@@ -169,12 +235,6 @@ func (c *Client) V2QueryOrder(tradeNo, outTradeNo string) (*ApiOrderQueryRes, er
 	var result ApiOrderQueryRes
 	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, err
-	}
-
-	// 验证返回的签名
-	if result.Sign != "" && c.Config.PublicKey != "" {
-		// 验证签名逻辑...
-		// 这里可以添加对返回结果的签名验证
 	}
 
 	return &result, nil
